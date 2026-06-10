@@ -1,11 +1,14 @@
 import { google } from "googleapis";
 
 function getAuth() {
+  let raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON || "{}";
+  raw = raw.trim();
+  if (raw.startsWith('"') && raw.endsWith('"')) {
+    raw = JSON.parse(raw);
+  }
+  const credentials = typeof raw === "string" ? JSON.parse(raw) : raw;
   return new google.auth.GoogleAuth({
-    credentials: {
-      client_email: process.env.GOOGLE_CLIENT_EMAIL,
-      private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
-    },
+    credentials,
     scopes: ["https://www.googleapis.com/auth/spreadsheets"],
   });
 }
@@ -53,14 +56,13 @@ export async function getProposalsByConsultant(consultantId: string) {
 
 export async function createProposal(data: Record<string, string>) {
   const sheets = getSheets();
-  // Ensure header row exists
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
     range: "Propostas!A1:A1",
   });
   const headers = [
     "id","consultantId","clientName","vehicleModel","vehiclePlate",
-    "fipeValue","monthlyPrice","firstPayment","franchise",
+    "fipeValue","monthlyPrice","oldPrice","firstPayment","franchise",
     "proposalNumber","includedCoverages","addedOptionals","createdAt"
   ];
   if (!res.data.values || res.data.values.length === 0) {
@@ -110,6 +112,23 @@ export async function getConsultant(id: string) {
   const rows = res.data.values || [];
   const header = rows[0] || [];
   const row = rows.find((r) => r[0] === id);
+  if (!row) return null;
+  const obj: Record<string, string> = {};
+  header.forEach((h: string, i: number) => { obj[h] = row[i] || ""; });
+  return obj;
+}
+
+export async function getConsultantByWhatsapp(whatsapp: string) {
+  const sheets = getSheets();
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId: SPREADSHEET_ID,
+    range: "Consultores!A:D",
+  });
+  const rows = res.data.values || [];
+  if (rows.length < 2) return null;
+  const header = rows[0];
+  const whatsappIndex = header.indexOf("whatsapp");
+  const row = rows.slice(1).find((r) => r[whatsappIndex] === whatsapp);
   if (!row) return null;
   const obj: Record<string, string> = {};
   header.forEach((h: string, i: number) => { obj[h] = row[i] || ""; });
