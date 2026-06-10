@@ -1,14 +1,11 @@
 import { google } from "googleapis";
 
 function getAuth() {
-  let raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON || "{}";
-  raw = raw.trim();
-  if (raw.startsWith('"') && raw.endsWith('"')) {
-    raw = JSON.parse(raw);
-  }
-  const credentials = typeof raw === "string" ? JSON.parse(raw) : raw;
   return new google.auth.GoogleAuth({
-    credentials,
+    credentials: {
+      client_email: process.env.GOOGLE_CLIENT_EMAIL,
+      private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
+    },
     scopes: ["https://www.googleapis.com/auth/spreadsheets"],
   });
 }
