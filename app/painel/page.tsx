@@ -10,6 +10,7 @@ interface Proposal {
   vehiclePlate: string;
   fipeValue: string;
   monthlyPrice: string;
+  oldPrice: string;
   firstPayment: string;
   franchise: string;
   proposalNumber: string;
@@ -31,6 +32,38 @@ const emptyForm = {
   includedCoverages: DEFAULT_INCLUDED.map((c) => c.id).join(","),
   addedOptionals: "",
 };
+
+function formatCurrency(raw: string): string {
+  const digits = raw.replace(/\D/g, "");
+  if (!digits) return "";
+  const number = parseInt(digits, 10) / 100;
+  return number.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+const inputStyle: React.CSSProperties = {
+  width: "100%", padding: "10px 14px", border: "1px solid #e5e7eb",
+  borderRadius: "8px", fontSize: "14px", outline: "none", background: "white"
+};
+const labelStyle: React.CSSProperties = {
+  display: "block", fontSize: "12px", fontWeight: "600", color: "#374151", marginBottom: "4px"
+};
+
+function CurrencyInput({
+  value, onChange, placeholder
+}: { value: string; onChange: (v: string) => void; placeholder?: string }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", border: "1px solid #e5e7eb", borderRadius: "8px", overflow: "hidden", background: "white" }}>
+      <span style={{ padding: "10px 12px", background: "#f8fafc", color: "#64748b", fontSize: "14px", fontWeight: "600", borderRight: "1px solid #e5e7eb", whiteSpace: "nowrap" }}>R$</span>
+      <input
+        style={{ flex: 1, padding: "10px 14px", border: "none", fontSize: "14px", outline: "none", background: "white" }}
+        value={value}
+        onChange={(e) => onChange(formatCurrency(e.target.value))}
+        placeholder={placeholder || "0,00"}
+        inputMode="numeric"
+      />
+    </div>
+  );
+}
 
 export default function PainelPage() {
   const router = useRouter();
@@ -64,6 +97,10 @@ export default function PainelPage() {
     loadProposals(cid);
   }, [router, loadProposals]);
 
+  function setField(field: string, value: string) {
+    setForm((prev) => ({ ...prev, [field]: value }));
+  }
+
   function openNew() {
     setEditingId(null);
     setForm(emptyForm);
@@ -84,7 +121,7 @@ export default function PainelPage() {
       vehiclePlate: p.vehiclePlate,
       fipeValue: p.fipeValue,
       monthlyPrice: p.monthlyPrice,
-      oldPrice: "",
+      oldPrice: p.oldPrice || "",
       firstPayment: p.firstPayment,
       franchise: p.franchise,
       proposalNumber: p.proposalNumber,
@@ -139,14 +176,6 @@ export default function PainelPage() {
   function toggleOptional(id: string) {
     setOptionalIds((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
   }
-
-  const inputStyle: React.CSSProperties = {
-    width: "100%", padding: "10px 14px", border: "1px solid #e5e7eb",
-    borderRadius: "8px", fontSize: "14px", outline: "none", background: "white"
-  };
-  const labelStyle: React.CSSProperties = {
-    display: "block", fontSize: "12px", fontWeight: "600", color: "#374151", marginBottom: "4px"
-  };
 
   if (loading) return (
     <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#f4f6f9" }}>
@@ -211,22 +240,13 @@ export default function PainelPage() {
                   <div style={{ fontSize: "11px", color: "#94a3b8" }}>por mês</div>
                 </div>
                 <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                  <button
-                    onClick={() => copyLink(p.id)}
-                    style={{ background: copiedId === p.id ? "#16a34a" : "#f1f5f9", color: copiedId === p.id ? "white" : "#374151", border: "none", padding: "8px 16px", borderRadius: "8px", fontSize: "13px", fontWeight: "600", cursor: "pointer" }}
-                  >
+                  <button onClick={() => copyLink(p.id)} style={{ background: copiedId === p.id ? "#16a34a" : "#f1f5f9", color: copiedId === p.id ? "white" : "#374151", border: "none", padding: "8px 16px", borderRadius: "8px", fontSize: "13px", fontWeight: "600", cursor: "pointer" }}>
                     {copiedId === p.id ? "✓ Copiado!" : "🔗 Copiar Link"}
                   </button>
-                  <button
-                    onClick={() => window.open(`/proposta/${p.id}`, "_blank")}
-                    style={{ background: "#eff6ff", color: "#2563eb", border: "none", padding: "8px 16px", borderRadius: "8px", fontSize: "13px", fontWeight: "600", cursor: "pointer" }}
-                  >
+                  <button onClick={() => window.open(`/proposta/${p.id}`, "_blank")} style={{ background: "#eff6ff", color: "#2563eb", border: "none", padding: "8px 16px", borderRadius: "8px", fontSize: "13px", fontWeight: "600", cursor: "pointer" }}>
                     👁 Ver
                   </button>
-                  <button
-                    onClick={() => openEdit(p)}
-                    style={{ background: "#fff7ed", color: "#ea580c", border: "none", padding: "8px 16px", borderRadius: "8px", fontSize: "13px", fontWeight: "600", cursor: "pointer" }}
-                  >
+                  <button onClick={() => openEdit(p)} style={{ background: "#fff7ed", color: "#ea580c", border: "none", padding: "8px 16px", borderRadius: "8px", fontSize: "13px", fontWeight: "600", cursor: "pointer" }}>
                     ✏️ Editar
                   </button>
                 </div>
@@ -251,39 +271,40 @@ export default function PainelPage() {
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
               <div style={{ gridColumn: "1 / -1" }}>
                 <label style={labelStyle}>Nome do Cliente *</label>
-                <input style={inputStyle} value={form.clientName} onChange={(e) => setForm({ ...form, clientName: e.target.value })} placeholder="Ex: José Silva" />
+                <input style={inputStyle} value={form.clientName} onChange={(e) => setField("clientName", e.target.value)} placeholder="Ex: José Silva" />
               </div>
               <div style={{ gridColumn: "1 / -1" }}>
                 <label style={labelStyle}>Modelo do Veículo *</label>
-                <input style={inputStyle} value={form.vehicleModel} onChange={(e) => setForm({ ...form, vehicleModel: e.target.value })} placeholder="Ex: Fiat Mobi Trekking 1.0 Flex 2025" />
+                <input style={inputStyle} value={form.vehicleModel} onChange={(e) => setField("vehicleModel", e.target.value)} placeholder="Ex: Fiat Mobi Trekking 1.0 Flex 2025" />
               </div>
               <div>
-                <label style={labelStyle}>Placa (últimos dígares visíveis)</label>
-                <input style={inputStyle} value={form.vehiclePlate} onChange={(e) => setForm({ ...form, vehiclePlate: e.target.value })} placeholder="Ex: MUI-**84" />
+                <label style={labelStyle}>Placa (últimos dígitos visíveis)</label>
+                <input style={inputStyle} value={form.vehiclePlate} onChange={(e) => setField("vehiclePlate", e.target.value)} placeholder="Ex: MUI-**84" />
               </div>
               <div>
                 <label style={labelStyle}>Número da Proposta</label>
-                <input style={inputStyle} value={form.proposalNumber} onChange={(e) => setForm({ ...form, proposalNumber: e.target.value })} placeholder="Ex: 1579558" />
+                <input style={inputStyle} value={form.proposalNumber} onChange={(e) => setField("proposalNumber", e.target.value)} placeholder="Ex: 1579558" />
               </div>
+
               <div>
                 <label style={labelStyle}>Valor FIPE</label>
-                <input style={inputStyle} value={form.fipeValue} onChange={(e) => setForm({ ...form, fipeValue: e.target.value })} placeholder="Ex: R$ 66.890,00" />
+                <CurrencyInput value={form.fipeValue} onChange={(v) => setField("fipeValue", v)} placeholder="66.890,00" />
               </div>
               <div>
                 <label style={labelStyle}>Franquia</label>
-                <input style={inputStyle} value={form.franchise} onChange={(e) => setForm({ ...form, franchise: e.target.value })} placeholder="Ex: R$ 4.347,85" />
+                <CurrencyInput value={form.franchise} onChange={(v) => setField("franchise", v)} placeholder="4.347,85" />
               </div>
               <div>
                 <label style={labelStyle}>Valor Mensal (atual) *</label>
-                <input style={inputStyle} value={form.monthlyPrice} onChange={(e) => setForm({ ...form, monthlyPrice: e.target.value })} placeholder="Ex: 298,17" />
+                <CurrencyInput value={form.monthlyPrice} onChange={(v) => setField("monthlyPrice", v)} placeholder="298,17" />
               </div>
               <div>
                 <label style={labelStyle}>Valor Mensal (riscado/antigo)</label>
-                <input style={inputStyle} value={form.oldPrice} onChange={(e) => setForm({ ...form, oldPrice: e.target.value })} placeholder="Ex: 371,46 (opcional)" />
+                <CurrencyInput value={form.oldPrice} onChange={(v) => setField("oldPrice", v)} placeholder="371,46 (opcional)" />
               </div>
               <div style={{ gridColumn: "1 / -1" }}>
                 <label style={labelStyle}>Primeira Parcela</label>
-                <input style={inputStyle} value={form.firstPayment} onChange={(e) => setForm({ ...form, firstPayment: e.target.value })} placeholder="Ex: R$ 668,90" />
+                <CurrencyInput value={form.firstPayment} onChange={(v) => setField("firstPayment", v)} placeholder="668,90" />
               </div>
             </div>
 
