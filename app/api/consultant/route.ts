@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getConsultant, createConsultant } from "@/lib/sheets";
+import { getConsultant, getConsultantByWhatsapp, createConsultant } from "@/lib/sheets";
 
 export async function GET(req: NextRequest) {
   try {
@@ -20,6 +20,15 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { name, whatsapp } = body;
     if (!name || !whatsapp) return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+
+    // Verifica se já existe um consultor com esse WhatsApp
+    const existing = await getConsultantByWhatsapp(whatsapp);
+    if (existing) {
+      // Retorna o consultor existente em vez de criar um novo
+      return NextResponse.json({ id: existing.id, name: existing.name, whatsapp: existing.whatsapp });
+    }
+
+    // Cria novo consultor
     const id = Date.now().toString().slice(-8) + Math.floor(Math.random() * 100).toString().padStart(2, "0");
     await createConsultant({ id, name, whatsapp });
     return NextResponse.json({ id, name, whatsapp });
