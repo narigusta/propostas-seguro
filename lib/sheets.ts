@@ -2,10 +2,21 @@ import { google } from "googleapis";
 
 function getAuth() {
   let raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON || "{}";
-  if (raw.startsWith('"') && raw.endsWith('"')) {
-    raw = JSON.parse(raw);
+  
+  // Remove aspas externas se existirem
+  raw = raw.trim();
+  if (raw.startsWith('"')) {
+    raw = raw.slice(1);
   }
-  const credentials = typeof raw === "string" ? JSON.parse(raw) : raw;
+  if (raw.endsWith('"')) {
+    raw = raw.slice(0, -1);
+  }
+  
+  // Corrige escape duplo que o Vercel às vezes aplica
+  raw = raw.replace(/\\n/g, "\n");
+  
+  const credentials = JSON.parse(raw);
+  
   return new google.auth.GoogleAuth({
     credentials,
     scopes: ["https://www.googleapis.com/auth/spreadsheets"],
